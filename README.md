@@ -27,15 +27,3 @@ This OS is designed with specific functionalities such as dynamic memory allocat
 ## Exception and Interrupt Handling
 - Handles exceptions and interrupts.
 - The exception handler uses the printing support to report errors when an exception occurs in the kernel, and should squash any user-level program that produces an exception, returning control to the shell (the shell should not cause an exception in a working OS).
-
-## Extra Credit
-- Extra credit is available for implementing user-level signals and dynamic memory allocation.
-
-## Troubleshooting
-- Includes debugging with QEMU and resolving compile errors related to image corruption.
-
-## Teamwork
-- Emphasizes teamwork in grading, with individual contributions affecting the final score.
-
-## Disclaimer
-- This OS is part of an academic course and is meant for educational purposes only.
