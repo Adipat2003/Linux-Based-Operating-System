@@ -1,0 +1,266 @@
+   ____     _   _    ____         _       U  ___ u   ____   
+U | __")uU |"|u| |U /"___|u      |"|       \/"_ \/U /"___|u 
+ \|  _ \/ \| |\| |\| |  _ /    U | | u     | | | |\| |  _ / 
+  | |_) |  | |_| | | |_| |      \| |/__.-,_| |_| | | |_| |  
+  |____/  <<\___/   \____|       |_____|\_)-\___/   \____|  
+ _|| \\_ (__) )(    _)(|_        //  \\      \\     _)(|_   
+(__) (__)    (__)  (__)__)      (_")("_)    (__)   (__)__)  
+                                                            
+-----------------------------------------------------------------                                                           
+   _____ _               _                _       _     __ 
+  / ____| |             | |              (_)     | |   /_ |
+ | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_   | |
+ | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __|  | |
+ | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_   | |
+  \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__|  |_|
+                             | |                           
+                             |_|                                                                                       
+                                                            
+ 1. 
+ Problem: Misconception with RTC EOI
+ Why: We were getting an error where, when testing my RTC, it 
+      would only cause an interrupt for one "frame." In other 
+      words, the characters on the screen were not constantly 
+      changing. I knew the issue was related to the EOI
+      functionality, however we initially thought that the issue 
+      was due to our send_eoi function itself. However, after
+      reviewing the code nothing seemed wrong. As it turns out, we
+      were not providing the send_eoi function the correct value in
+      our RTC handler. Incorrectly, we thought that we should be
+      sending 0x02 to the function to send an EOI to the secondary
+      PIC.
+ Solution:  To fix our mistake, we simply needed to change the
+            enable_irq and send_eoi calls in our RTC initializer
+            handler to send 0x08 instead, since the RTC uses IRQ8.
+ Difficulty: Fixed 2 lines of code (~45 minutes)
+
+ 2. 
+ Problem: Assmebly Wrappers for Interrupt Handlers
+ Why: We were getting an issue where upon trying to test the RTC
+      and Keyboard, we would receive a General Protection Fault
+      when we typed in a character. It turns out that there was an
+      issue occuring when both and RTC and Keyboard interrupt were
+      triggered, leading to registers being saved and memory
+      corrupting.
+ Solution:  To fix our errors, we needed to implement assembly
+            wrappers for our interrupt handlers for both the
+            RTC and Keyboard. Instead of the handler directly being
+            called when an interrupt occured, we instead call a
+            handler written in x86 that first pushes all registers
+            to the stack, calls the handler, pops all registers from
+            the stack, then returns from the interrupt.
+ Difficulty: Added 20 lines (~1.5 hours)
+
+ 3. 
+ Problem: The test_debug kept rebooting 
+ Why: There were a bunch of things tht were off. For one, the size 
+      of the struct didn't match the 32 bit entry i.e. I had 31 entries, 
+      so the struct fell short of the memory stored. Another issue was 
+      the fact that the page_init function wasn't make extern, and the 
+      devel didn't throw an error but it didn't work either. 
+ Solution: Making the init function extern and including it in the tests 
+           and kenrel fixed the first part of the issue. Making sure that 
+           all structs are 32 bits long fixed the second issue, which made 
+           the kernel able to boot.
+ Difficutly: Fixed 5 lines of code (~3 hours)
+
+ 4. 
+ Problem: Only the kernel kept getting mapped properly while the video mem 
+          was never mapped
+ Why: The video mem was not getting mapped correctly i.e. it wasn't even 
+      getting mapped due to the fact that the memory address for it was set 
+      to all 0s in the struct
+ Solution: Mapping the struct address correctly such that it's set to i each 
+           iteration rather than 0
+ Difficutly: Fixed 15 lines of code (~1 hour)
+
+   _____ _               _                _       _     ___  
+  / ____| |             | |              (_)     | |   |__ \ 
+ | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_     ) |
+ | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __|   / / 
+ | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_   / /_ 
+  \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__| |____|
+                             | |                             
+                             |_|                             
+ 1. 
+ Problem: Misunderstanding of RTC Frequency Formula
+ Why: We had a misconception regarding the formula used to calculate the
+      frequency of RTC interrupts used by the RTC controller. According to the
+      OSDev Wiki page, the formula used is: frequency =  32768 >> (rate-1), 
+      where rate is the number of bits you want to shift 32768 by to achieve
+      the desired frequency. However, initially, we did not know that the 
+      'rate' we provide the controller must account for the fact that the 
+      formula is 'rate - 1'. In other words, we thought that the value we
+      input to the controller must be the final number we want to shift 32768
+      by. So, the RTC interrupt frequency being set was not what we wanted.
+ Solution: After identifying our error, we added 1 extra to 'rate' to account
+           for the fact that it was subtracted by 1 in the formula wherever we
+           needed to calculat it (RTC open and RTC write).
+ Difficulty:   Modified ~4 lines (~1 hour)
+
+ 2. 
+ Problem: Nothing was being printed out from my buffer
+ Why: When I was doing memcpy when putting in the address of the byte I am reading
+     into the buffer, it looked like this: memcpy(buf, dataBlockNumPointer, 1).
+     The issue from this was that I was not updating where my buf was pointing to
+     so I would just read a byte, put it into the buffer, then replace it right after with a new byte
+ Solution: To fix this, I had to just increase where in my buf I was looking at which would be everytime 
+          I finished puting in a byte, I need to just update my buf like: memcpy(buf+bytesRead, dataBlockNumPointer, 1),
+          where bytesRead is a counter that increases whenever I successfully read a byte 
+ Difficulty: Changed 1 line of code (~20 mins)
+
+ 3. 
+ Problem: We were always missing the first charecter when we tried printing any file
+ Why: Since we always start with the offset of 0, we kept shifting to the next data block 
+      because of our math was essentially if (offset % 4096), we shift to the next block. This 
+      was clearly wrong becasue of the fact that we never made it to the first block.
+ Solution: Adding an if statement that basically only checked (offset % 4096) if an only if
+           we are not looking ast the very first index, so we can move to the next block if and only if
+           we have already read something from the current block.
+ Difficulty: Added 2 lines of code (~3 hours)
+
+ 4. 
+ Problem: Improper capitalization for keys when testing shift and capslock usage.  
+ Why: We have a set of flags that determine if capslock and shift are currently active to determine which key to display to screen. Our initial sequence of logic for checking
+      these flags was set up so that it defaulted to the capslock only scan code before checking the other flags. This made cases with shift pressed while capslock is on to display
+      characters using the wrong scancode set. 
+ Solution: Rearranging the order of our if statements to determine the scancode fixed this solution. We made the shift only and capslock only checks come after checking both flags
+           together.
+Difficulty: Swapped around about 3 if statement checks which was about 10 lines of code (~15 minutes)
+ 
+
+                        
+   _____ _               _                _       _     ____  
+  / ____| |             | |              (_)     | |   |___ \ 
+ | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_    __) |
+ | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __|  |__ < 
+ | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_   ___) |
+  \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__| |____/ 
+                             | |                              
+                             |_|                              
+ 1. 
+ Problem: We would be losing our fourth character for our typed input and the return value
+          of our file descriptor index was getting lost
+ Why: Within our assembly linkage, before we do the system call, we do a pushal
+     pushing eax to the stack. When coming back from our system call, the return value is in eax
+     However, we do a popal, which brings back the old eax value which was the jump table value
+     which is why we kept lost our return values
+ Solution: We push all registers to the stack individually rather than doing pushal.
+          But we also ignore pushing and poping eax because thats where it would get messed up
+ Difficulty: Had to remove the push/popal and push/pop all registers individually but not include eax,
+               Understanding where this issue was coming from like why our 4th character would disapper 
+               took like 6+ hours
+ 2. 
+ Problem: When we were testing shell, whenever we would type one key, the first letter of like 391OS>
+          shows up, so one keyboard press spammed a bunch of 3's, then key press had 9 and so one until 
+          our screen had 391OS> just spamming everywhere
+ Why: The interrupt flag was being messed up because interrupts were always on, never off being turned off the keyboard
+     interrupts were messing us up, we had to turn them off in our read
+ Solution: After putting in an sti in our read system call function, no more spamming occured
+ Difficulty: Only added sti() into read, but understanding where this error was coming from took like 2 hours
+ 3. 
+ Problem: We kept on bootlooping our program when we would be coming back from any user program
+     that was running. 
+ Why: Our ebp that we receieve for would be messed up because I updated the esp before hand, but when in the assembly
+     code, I would do like 12(%esp), not %ebp, so when updating my ebp like 16(%esp), %ebp, the esp would not be correct messing
+     everything up
+ Solution: When we changed it to ebp for our parameter, we didn't experience a boot loop
+ Difficulty: A few lines of code which took like 2 hours because we didn't really understand where the bootloop was coming from
+
+ 4. 
+ Problem: Whenever pressing just enter or entering a series of spaces as the command, it would recognize it as the
+          the previous valid exe command.
+ Why: We had inadequate return value checking in our read_dentry_by_name function. This would return a -1 when we
+      passed in a blank string or solely enter into read_dentry_by_index function inside read_dentry_by_name, 
+      however, we never checked if this return value from read_dentry_by_index was a success or failure, so we 
+      would return a success on a failure. Our filesystem function then looked at our global dentry to see what
+      the inode number and filetype was, which was associated with the previously used dentry since we did not change
+      it from the failed read_dentry_by_name. This caused an empty string to call the previous command when entered
+      into the shell. 
+ 
+ Solution: We added a check to make sure our call to read_dentry_by_index was siccessful and return -1 if this
+           function call failed. This lead to returning -1 to the execute function which shell interpreted as
+           an invalid command, leading to the expected behavior we needed.
+           
+Difficulty: About 2 lines of code added, which took 30 minutes to fully find, debug, and implement solution.
+
+   _____ _               _                _       _     _  _   
+  / ____| |             | |              (_)     | |   | || |  
+ | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_  | || |_ 
+ | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __| |__   _|
+ | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_     | |  
+  \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__|    |_|  
+                             | |                               
+                             |_|                                                                
+ 1. 
+ Problem: Leading spaces for the argument made the argument not recognizible 
+ Why: When I was putting the value from command into our argument, we were putting all the spaces within 
+     the argument array, but it should only be taking in the characters after the spaces and go until we reach null terminating
+ Solution: I added a while loop which updates our index counter which is called commandEntry. We keep incrementing this commandEntry
+          every time we see a space and spot when we dont have any more
+ Difficulty: Took like 2 minutes to realize what was wrong and fixing it was really short addition
+
+ 2. 
+ Problem: From checkpoint 3 demo, we discovered a bug that we couldn't run any more programs een though we exited working shells
+ Why: We noticed that our parent for all the children was set to 0, not the one currently being worked at. Its because we were setting our 
+     parent_id within the PCB struct always to 0, so when we were at the end of our PIDArray, our currentPID was always set back to the parent 
+     which was always 0. So when we try to access an avaiable spot, it never could 
+ Solution: We set the parent_id for our currentPID to be just -1 of what the currentPID is so we always go back to where it should be
+ Difficulty: Only had to remove and update a few lines of code, but understanding how this bug even began and how to debug took like 2 hours to fix 
+
+ 3. 
+ Problem: The verylargetext file was not printing everything in the file
+ Why: We noticed that our file position was not the correctly stored one, but rather it being doubled. So if we read 1024 bytesRead
+     the first time, the next time we want to read the file, it would become 2048. So when we are at the end of the file, the OS thinks we read the 
+     whole file because the file position is messed up
+ Solution: We were updating the file position both in a our file system driver file within our file_read function, as well as in
+     our read system call. We just removed the where we updated our file position within file_read and that fixed it. 
+     By doing this, it fixed another issue we had where when we did grep frame0.txt, it printed out fish: with garbage data included. The file position was causing this
+ Difficulty: We were stuck on trying to fix the grep frame0.txt issue which took like 40 minutes trying to figure out what was happening,
+     but then when we when we noticed that the long file not being printed out, fixing that took like
+     20 minutes of understanding what was wrong, then fixing it took just removing one line.
+
+ 4. 
+ Problem: The fish command kept page faulting although the info mem showed that the memory was mapped correctly
+ Why: The actual page was never made present through the page table although the table was made present through the directory. This led to a page
+      fault cause the page we were trying to access is just not there.
+ Solution: Setting hte page to present through the vidmap table and making sure that the location of that page is set correctly such that it points to video 
+           memory. Also had to make sure that the user had access to the page and the privelege level wasn't set tpp high.
+ Difficulty: Understanding what was going on took a bit, but fixing the code was very short
+   _____ _               _                _       _     _____ 
+  / ____| |             | |              (_)     | |   | ____|
+ | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_  | |__  
+ | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __| |___ \ 
+ | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_   ___) |
+  \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__| |____/ 
+                             | |                              
+                             |_|                              
+
+ 1. 
+ Problem: Our currentPID was beign set to a different processes id within a different terminal had
+ Why: Before, we had a checker saying if our current process was a shell or not. That checker had a bug which would always return
+    And since we were always returning. The currentPID was being set incorrectly
+ Solution: After removing the isShell implementation, we got our currentPID to get set properly. Not closing base shells
+ Difficulty: Took a bit to understand what was happening but deletion of if statment fixed it
+
+ 2. 
+ Problem: During bootup, we would have an uninitialized PCB that were using which caused boot loops
+ Why: Within our get PCB function, we haven't accounted for bootup because the PID we get is -1. 
+    THe PCB then would be cosidered out of user program to not be correct
+ Solution: We added checks in getPCB for account for bootup so we aren't going out of bounds 
+ Difficulty: It was confusing why it kept bootlooping but then realized it was out of bounds, it was a simple add in getPCB
+
+ 3. 
+ Problem: Our scheduling was never actually happening
+ Why: We noticed that we kept on bootlooping all the time, but only after we set up 6 shells so our PIDArray was all fill, 
+    then we go back, any process would work and not bootloop. We always add 1 to an array checking if what we inputed was a shell
+    If it was a shell, we use our PID to index into this array to fill it 1. However, when we halt the shells, we never set our index back to 0
+    So in scheduling, if our index in our isSHell 1, we always return. It would always return because all indexes are 1.
+ Solution: After setting back correct index back to 0 in halt, scheduling was actually happening
+ Difficulty: It took a few hours to understand why our code was working only after 6 shells have worked, but the fix was just one line in halt
+
+ 4. 
+ Problem: Terminal switching did not properly save and restore video memory when switching back to terminal
+ Why: Improper ordering of updating video paging and mem copying. 
+ Solution: Adjusted the video mapping and placed it before memory copying
+ Difficulty: A few lines of code and about 30 minutes to resolve. 

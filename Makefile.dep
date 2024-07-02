@@ -1,0 +1,46 @@
+asm_wrappers.o: asm_wrappers.S
+boot.o: boot.S multiboot.h x86_desc.h types.h
+idt_linkage.o: idt_linkage.S idt_linkage.h
+paging_helper.o: paging_helper.S
+x86_desc.o: x86_desc.S x86_desc.h types.h
+filesys_driver.o: filesys_driver.c filesys_driver.h types.h x86_desc.h \
+  lib.h terminal.h keyboard.h sys_call.h rtc.h i8259.h paging.h \
+  paging_helper.h asm_wrappers.h scheduler.h idt_exceptions.h \
+  idt_handlers.h
+i8259.o: i8259.c i8259.h types.h lib.h terminal.h keyboard.h sys_call.h \
+  x86_desc.h rtc.h filesys_driver.h paging.h paging_helper.h \
+  asm_wrappers.h scheduler.h idt_exceptions.h idt_handlers.h
+idt_exceptions.o: idt_exceptions.c idt_exceptions.h x86_desc.h types.h \
+  idt_handlers.h keyboard.h terminal.h lib.h sys_call.h rtc.h i8259.h \
+  filesys_driver.h paging.h paging_helper.h asm_wrappers.h scheduler.h
+idt_handlers.o: idt_handlers.c idt_handlers.h idt_exceptions.h x86_desc.h \
+  types.h sys_call.h lib.h terminal.h keyboard.h rtc.h i8259.h \
+  filesys_driver.h paging.h paging_helper.h asm_wrappers.h scheduler.h
+kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h terminal.h \
+  keyboard.h sys_call.h rtc.h i8259.h filesys_driver.h paging.h \
+  paging_helper.h asm_wrappers.h scheduler.h idt_exceptions.h \
+  idt_handlers.h debug.h tests.h
+keyboard.o: keyboard.c keyboard.h terminal.h lib.h types.h sys_call.h \
+  x86_desc.h rtc.h i8259.h filesys_driver.h paging.h paging_helper.h \
+  asm_wrappers.h scheduler.h idt_exceptions.h idt_handlers.h
+lib.o: lib.c lib.h types.h terminal.h keyboard.h sys_call.h x86_desc.h \
+  rtc.h i8259.h filesys_driver.h paging.h paging_helper.h asm_wrappers.h \
+  scheduler.h idt_exceptions.h idt_handlers.h
+paging.o: paging.c paging.h x86_desc.h types.h lib.h terminal.h \
+  keyboard.h sys_call.h rtc.h i8259.h filesys_driver.h asm_wrappers.h \
+  scheduler.h idt_exceptions.h idt_handlers.h paging_helper.h
+rtc.o: rtc.c rtc.h types.h lib.h terminal.h keyboard.h sys_call.h \
+  x86_desc.h filesys_driver.h paging.h paging_helper.h asm_wrappers.h \
+  scheduler.h idt_exceptions.h idt_handlers.h i8259.h
+scheduler.o: scheduler.c scheduler.h lib.h types.h terminal.h keyboard.h \
+  sys_call.h x86_desc.h rtc.h i8259.h filesys_driver.h paging.h \
+  paging_helper.h asm_wrappers.h idt_exceptions.h idt_handlers.h
+sys_call.o: sys_call.c sys_call.h lib.h types.h terminal.h keyboard.h \
+  x86_desc.h rtc.h i8259.h filesys_driver.h paging.h paging_helper.h \
+  asm_wrappers.h scheduler.h idt_exceptions.h idt_handlers.h
+terminal.o: terminal.c terminal.h keyboard.h lib.h types.h sys_call.h \
+  x86_desc.h rtc.h i8259.h filesys_driver.h paging.h paging_helper.h \
+  asm_wrappers.h scheduler.h idt_exceptions.h idt_handlers.h
+tests.o: tests.c tests.h x86_desc.h types.h lib.h terminal.h keyboard.h \
+  sys_call.h rtc.h i8259.h filesys_driver.h paging.h paging_helper.h \
+  asm_wrappers.h scheduler.h idt_exceptions.h idt_handlers.h
